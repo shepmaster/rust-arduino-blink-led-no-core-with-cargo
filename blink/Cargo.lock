@@ -1,0 +1,11 @@
+[root]
+name = "blink"
+version = "0.1.0"
+dependencies = [
+ "avr-core 0.1.0",
+]
+
+[[package]]
+name = "avr-core"
+version = "0.1.0"
+

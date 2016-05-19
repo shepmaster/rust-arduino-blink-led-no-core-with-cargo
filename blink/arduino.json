@@ -1,0 +1,19 @@
+{
+  "llvm-target": "avr-atmel-none",
+  "target-endian": "little",
+  "target-pointer-width": "16",
+  "os": "none",
+  "target-env": "gnu",
+  "target-vendor": "unknown",
+  "arch": "avr",
+  "data-layout": "e-p:16:8:8-i8:8:8-i16:8:8-i32:8:8-i64:8:8-f32:8:8-f64:8:8-n8",
+
+  "executables": true,
+
+  "linker": "avr-gcc",
+  "pre-link-args": ["-mmcu=atmega328p", "-nostartfiles", "../interrupt_vector.S"],
+  "exe-suffix": ".elf",
+  "post-link-args": ["-Wl,--no-gc-sections"],
+
+  "no-compiler-rt": true
+}

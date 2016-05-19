@@ -1,0 +1,7 @@
+[package]
+name = "blink"
+version = "0.1.0"
+authors = ["Jake Goulding <jake.goulding@gmail.com>"]
+
+[dependencies.avr-core]
+path = "../avr-core"
