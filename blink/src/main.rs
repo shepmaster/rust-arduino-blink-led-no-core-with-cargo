@@ -7,15 +7,15 @@
 #![no_main]
 
 extern crate core as avr_core;
+extern crate arduino;
 
 use avr_core::prelude::v1::*;
 use avr_core::intrinsics::{volatile_load, volatile_store};
 
 pub mod prelude;
-pub mod avr;
 pub mod timer1;
 
-use avr::*;
+use arduino::*;
 use prelude::*;
 
 #[lang = "eh_personality"]

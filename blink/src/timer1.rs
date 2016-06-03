@@ -1,7 +1,7 @@
 use avr_core::prelude::v1::*;
 use avr_core::intrinsics::volatile_store;
 
-use ::avr::*;
+use arduino::*;
 
 pub enum ClockSource {
     None,

@@ -1,5 +1,10 @@
 //! Definitions of register addresses and bits within those registers
 
+#![feature(no_core)]
+#![no_core]
+
+extern crate core;
+
 macro_rules! bit {
     (-, $pos:expr) => {};
     ($name:ident, $pos:expr) => {
