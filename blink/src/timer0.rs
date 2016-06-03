@@ -1,5 +1,5 @@
 use avr_core::prelude::v1::*;
-use avr_core::intrinsics::volatile_store;
+use avr_core::ptr::write_volatile;
 
 use arduino::*;
 
@@ -112,18 +112,18 @@ impl Timer {
 
     pub fn configure(self) {
         unsafe {
-            volatile_store(TCCR0A, self.a);
-            volatile_store(TCCR0B, self.b);
+            write_volatile(TCCR0A, self.a);
+            write_volatile(TCCR0B, self.b);
 
             // Reset counter to zero
-            volatile_store(TCNT0, 0);
+            write_volatile(TCNT0, 0);
 
             if let Some(v) = self.output_compare_1 {
                 // Set the match
-                volatile_store(OCR0A, v);
+                write_volatile(OCR0A, v);
 
                 // Enable compare interrupt
-                volatile_store(TIMSK0, OCIE0A);
+                write_volatile(TIMSK0, OCIE0A);
             }
         }
     }

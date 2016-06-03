@@ -1,6 +1,5 @@
 #![feature(lang_items)]
 #![feature(no_core)]
-#![feature(core_intrinsics)]
 #![feature(asm)]
 
 #![no_core]
@@ -10,7 +9,7 @@ extern crate core as avr_core;
 extern crate arduino;
 
 use avr_core::prelude::v1::*;
-use avr_core::intrinsics::{volatile_load, volatile_store};
+use avr_core::ptr::{read_volatile, write_volatile};
 
 pub mod prelude;
 pub mod timer0;
@@ -27,8 +26,8 @@ extern fn panic_fmt() -> ! { loop {} }
 
 #[no_mangle]
 pub unsafe extern "avr-interrupt" fn _ivr_timer0_compare_a() {
-    let prev_value = volatile_load(PORTB);
-    volatile_store(PORTB, prev_value ^ PINB5);
+    let prev_value = read_volatile(PORTB);
+    write_volatile(PORTB, prev_value ^ PINB5);
 }
 
 const CPU_FREQUENCY_HZ: u64 = 16_000_000;
@@ -45,9 +44,9 @@ pub extern fn main() {
     unsafe {
         without_interrupts(|| {
             // Configure all Port B pins as outputs
-            volatile_store(DDRB, 0xFF);
+            write_volatile(DDRB, 0xFF);
             // Turn on all Port B pins
-            volatile_store(PORTB, 0xFF);
+            write_volatile(PORTB, 0xFF);
 
             timer0::Timer::new()
                 .waveform_generation_mode(timer0::WaveformGenerationMode::ClearOnTimerMatchOutputCompare)
