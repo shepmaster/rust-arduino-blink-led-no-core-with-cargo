@@ -11,9 +11,40 @@
   "executables": true,
 
   "linker": "avr-gcc",
-  "pre-link-args": ["-mmcu=atmega328p", "-nostartfiles", "../interrupt_vector.S"],
+  "pre-link-args": [
+    "-mmcu=atmega328p",
+    "-nostartfiles",
+    "../interrupt_vector.S"
+  ],
   "exe-suffix": ".elf",
-  "post-link-args": ["-Wl,--no-gc-sections"],
+  "post-link-args": [
+    "-Wl,--entry=main",
+    "-Wl,--entry=_ivr_irq0",
+    "-Wl,--entry=_ivr_irq1",
+    "-Wl,--entry=_ivr_pin_change_0",
+    "-Wl,--entry=_ivr_pin_change_1",
+    "-Wl,--entry=_ivr_pin_change_2",
+    "-Wl,--entry=_ivr_watchdog_timer",
+    "-Wl,--entry=_ivr_timer2_compare_a",
+    "-Wl,--entry=_ivr_timer2_compare_b",
+    "-Wl,--entry=_ivr_timer2_overflow",
+    "-Wl,--entry=_ivr_timer1_capture",
+    "-Wl,--entry=_ivr_timer1_compare_a",
+    "-Wl,--entry=_ivr_timer1_compare_b",
+    "-Wl,--entry=_ivr_timer1_overflow",
+    "-Wl,--entry=_ivr_timer0_compare_a",
+    "-Wl,--entry=_ivr_timer0_compare_b",
+    "-Wl,--entry=_ivr_timer0_overflow",
+    "-Wl,--entry=_ivr_spi_transfer_complete",
+    "-Wl,--entry=_ivr_usart_rx_complete",
+    "-Wl,--entry=_ivr_usart_udr_empty",
+    "-Wl,--entry=_ivr_usart_tx_complete",
+    "-Wl,--entry=_ivr_adc_conversion_complete",
+    "-Wl,--entry=_ivr_eeprom_ready",
+    "-Wl,--entry=_ivr_analog_comparator",
+    "-Wl,--entry=_ivr_two_wire_serial_interface",
+    "-Wl,--entry=_ivr_store_program_memory_ready"
+  ],
 
   "no-compiler-rt": true
 }
