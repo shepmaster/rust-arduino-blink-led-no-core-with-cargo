@@ -1,9 +1,14 @@
 //! Definitions of register addresses and bits within those registers
 
+#![feature(asm)]
 #![feature(no_core)]
 #![no_core]
 
 extern crate core;
+
+pub mod prelude;
+pub mod timer0;
+pub mod timer1;
 
 macro_rules! bit {
     (-, $pos:expr) => {};

@@ -5,18 +5,16 @@
 #![no_core]
 #![no_main]
 
-extern crate core as avr_core;
+extern crate core;
 extern crate arduino;
 
-use avr_core::prelude::v1::*;
-use avr_core::ptr::{read_volatile, write_volatile};
-
-pub mod prelude;
-pub mod timer0;
-pub mod timer1;
+use core::prelude::v1::*;
+use core::ptr::{read_volatile, write_volatile};
+// Let's pretend to have a standard library
+pub use core::{option, iter};
 
 use arduino::*;
-use prelude::*;
+use arduino::prelude::*;
 
 #[lang = "eh_personality"]
 extern fn eh_personality() {}

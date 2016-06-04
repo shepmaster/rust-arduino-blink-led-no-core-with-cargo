@@ -1,5 +1,5 @@
-use avr_core::prelude::v1::*;
-use avr_core::marker::PhantomData;
+use core::prelude::v1::*;
+use core::marker::PhantomData;
 
 pub struct DisableInterrupts(PhantomData<()>);
 

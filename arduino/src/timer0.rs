@@ -1,7 +1,7 @@
-use avr_core::prelude::v1::*;
-use avr_core::ptr::write_volatile;
+use core::prelude::v1::*;
+use core::ptr::write_volatile;
 
-use arduino::*;
+use super::*;
 
 pub enum ClockSource {
     None,
