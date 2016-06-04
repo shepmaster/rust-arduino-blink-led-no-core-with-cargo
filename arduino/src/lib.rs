@@ -9,6 +9,7 @@ extern crate core;
 pub mod prelude;
 pub mod timer0;
 pub mod timer1;
+pub mod serial;
 
 macro_rules! bit {
     (-, $pos:expr) => {};

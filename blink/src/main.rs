@@ -23,7 +23,7 @@ extern fn eh_personality() {}
 extern fn panic_fmt() -> ! { loop {} }
 
 #[no_mangle]
-pub unsafe extern "avr-interrupt" fn _ivr_timer0_compare_a() {
+pub unsafe extern "avr-interrupt" fn _ivr_timer1_compare_a() {
     let prev_value = read_volatile(PORTB);
     write_volatile(PORTB, prev_value ^ PINB5);
 }
@@ -36,6 +36,9 @@ const INTERRUPT_EVERY_1_HZ_1024_PRESCALER: u16 = ((CPU_FREQUENCY_HZ as f64 / (DE
 const DESIRED_HZ_TIM0: f64 = 30.0;
 const TIM0_PRESCALER: u64 = 1024;
 const INTERRUPT_EVERY_30_HZ_1024_PRESCALER: u8 = ((CPU_FREQUENCY_HZ as f64 / (DESIRED_HZ_TIM0 * TIM0_PRESCALER as f64)) as u64 - 1) as u8;
+
+const BAUD: u64 = 9600;
+const MYUBRR: u16 = (CPU_FREQUENCY_HZ / 16 / BAUD - 1) as u16;
 
 #[no_mangle]
 pub extern fn main() {
@@ -57,7 +60,18 @@ pub extern fn main() {
                 .clock_source(timer1::ClockSource::Prescale1024)
                 .output_compare_1(Some(INTERRUPT_EVERY_1_HZ_1024_PRESCALER))
                 .configure();
+
+            serial::Serial::new(MYUBRR)
+                .character_size(serial::CharacterSize::EightBits)
+                .mode(serial::Mode::Asynchronous)
+                .parity(serial::Parity::Disabled)
+                .stop_bits(serial::StopBits::OneBit)
+                .configure();
         });
+
+        for &b in b"hello, world!" {
+            serial::transmit(b);
+        }
 
         loop {
             // forever!
