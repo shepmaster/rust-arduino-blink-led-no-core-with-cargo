@@ -13,6 +13,7 @@ pub enum CharacterSize {
 
 impl CharacterSize {
     /// Returns bits for UCSR0B, UCSR0C
+    #[inline]
     fn bits(&self) -> (u8, u8) {
         use self::CharacterSize::*;
 
@@ -28,6 +29,7 @@ impl CharacterSize {
         }
     }
 
+    #[inline]
     fn mask() -> (u8, u8) {
         (!(UCSZ01 | UCSZ00), !(UCSZ02))
     }
@@ -40,6 +42,7 @@ pub enum Mode {
 }
 
 impl Mode {
+    #[inline]
     fn bits(&self) -> u8 {
         use self::Mode::*;
 
@@ -51,6 +54,7 @@ impl Mode {
         }
     }
 
+    #[inline]
     fn mask() -> u8 {
         !(UMSEL01 | UMSEL00)
     }
@@ -63,6 +67,7 @@ pub enum Parity {
 }
 
 impl Parity {
+    #[inline]
     fn bits(&self) -> u8 {
         use self::Parity::*;
 
@@ -74,6 +79,7 @@ impl Parity {
         }
     }
 
+    #[inline]
     fn mask() -> u8 {
         !(UPM01 | UPM00)
     }
@@ -85,6 +91,7 @@ pub enum StopBits {
 }
 
 impl StopBits {
+    #[inline]
     fn bits(&self) -> u8 {
         use self::StopBits::*;
 
@@ -94,6 +101,7 @@ impl StopBits {
         }
     }
 
+    #[inline]
     fn mask() -> u8 {
         !USBS0
     }
@@ -107,6 +115,7 @@ pub struct Serial {
 }
 
 impl Serial {
+    #[inline]
     pub fn new(ubrr: u16) -> Self {
         Serial {
             ubrr: ubrr,
@@ -116,6 +125,7 @@ impl Serial {
         }
     }
 
+    #[inline]
     pub fn character_size(mut self, character_size: CharacterSize) -> Self {
         let (b, c) = CharacterSize::mask();
         self.b &= b;
@@ -128,24 +138,28 @@ impl Serial {
         self
     }
 
+    #[inline]
     pub fn mode(mut self, mode: Mode) -> Self {
         self.c &= Mode::mask();
         self.c |= mode.bits();
         self
     }
 
+    #[inline]
     pub fn parity(mut self, parity: Parity) -> Self {
         self.c &= Parity::mask();
         self.c |= parity.bits();
         self
     }
 
+    #[inline]
     pub fn stop_bits(mut self, stop_bits: StopBits) -> Self {
         self.c &= StopBits::mask();
         self.c |= stop_bits.bits();
         self
     }
 
+    #[inline]
     pub fn configure(self) {
         unsafe {
             // Set Baud rate
@@ -158,6 +172,7 @@ impl Serial {
     }
 }
 
+#[inline]
 pub fn transmit(byte: u8) {
     unsafe {
         // Wait for empty transmit buffer
@@ -168,6 +183,7 @@ pub fn transmit(byte: u8) {
     }
 }
 
+#[inline]
 pub fn try_transmit(byte: u8) -> Result<(), ()> {
     unsafe {
         if (read_volatile(UCSR0A) & UDRE0) == 0 {

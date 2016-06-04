@@ -4,6 +4,7 @@ use core::marker::PhantomData;
 pub struct DisableInterrupts(PhantomData<()>);
 
 impl DisableInterrupts {
+    #[inline]
     pub fn new() -> DisableInterrupts {
         unsafe { asm!("CLI") }
         DisableInterrupts(PhantomData)
@@ -11,6 +12,7 @@ impl DisableInterrupts {
 }
 
 impl Drop for DisableInterrupts {
+    #[inline]
     fn drop(&mut self) {
         unsafe { asm!("SEI") }
     }

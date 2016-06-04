@@ -15,7 +15,8 @@ pub enum ClockSource {
 }
 
 impl ClockSource {
-    pub fn bits(&self) -> u8 {
+    #[inline]
+    fn bits(&self) -> u8 {
         use self::ClockSource::*;
 
         match *self {
@@ -30,7 +31,8 @@ impl ClockSource {
         }
     }
 
-    pub fn mask() -> u8 {
+    #[inline]
+    fn mask() -> u8 {
         !(CS12 | CS11 | CS10)
     }
 }
@@ -55,7 +57,8 @@ pub enum WaveformGenerationMode {
 
 impl WaveformGenerationMode {
     /// Returns bits for TCCR1A, TCCR1B
-    pub fn bits(&self) -> (u8, u8) {
+    #[inline]
+    fn bits(&self) -> (u8, u8) {
         use self::WaveformGenerationMode::*;
 
         // It makes more sense to return bytes (A,B), but the manual
@@ -84,7 +87,8 @@ impl WaveformGenerationMode {
         (a, b)
     }
 
-    pub fn mask() -> (u8, u8) {
+    #[inline]
+    fn mask() -> (u8, u8) {
         (!(WGM10 | WGM11), !(WGM12 | WGM13))
     }
 }
@@ -97,6 +101,7 @@ pub struct Timer {
 }
 
 impl Timer {
+    #[inline]
     pub fn new() -> Self {
         Timer {
             a: 0,
@@ -106,12 +111,14 @@ impl Timer {
         }
     }
 
+    #[inline]
     pub fn clock_source(mut self, source: ClockSource) -> Self {
         self.b &= ClockSource::mask();
         self.b |= source.bits();
         self
     }
 
+    #[inline]
     pub fn waveform_generation_mode(mut self, mode: WaveformGenerationMode) -> Self {
         let (a, b) = WaveformGenerationMode::mask();
         self.a &= a;
@@ -124,11 +131,13 @@ impl Timer {
         self
     }
 
+    #[inline]
     pub fn output_compare_1(mut self, value: Option<u16>) -> Self {
         self.output_compare_1 = value;
         self
     }
 
+    #[inline]
     pub fn configure(self) {
         unsafe {
             write_volatile(TCCR1A, self.a);
