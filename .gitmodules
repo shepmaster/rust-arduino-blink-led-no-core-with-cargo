@@ -1,0 +1,3 @@
+[submodule "rust-avr-libcore-mini"]
+	path = rust-avr-libcore-mini
+	url = https://github.com/gergoerdi/rust-avr-libcore-mini.git
