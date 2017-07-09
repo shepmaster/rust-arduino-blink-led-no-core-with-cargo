@@ -1,8 +1,0 @@
-[package]
-name = "core"
-version = "0.1.0"
-authors = ["Jake Goulding <jake.goulding@gmail.com>"]
-
-[lib]
-path = "/Users/shep/Projects/avr-rust/src/libcore/lib.rs"
-# path = "/tmp/libcore/lib.rs"
