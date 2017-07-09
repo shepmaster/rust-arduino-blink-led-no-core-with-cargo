@@ -4,7 +4,6 @@ version = "0.1.0"
 dependencies = [
  "arduino 0.1.0",
  "core 0.1.0",
- "rustc_builtins 0.1.0",
 ]
 
 [[package]]
@@ -17,11 +16,4 @@ dependencies = [
 [[package]]
 name = "core"
 version = "0.1.0"
-
-[[package]]
-name = "rustc_builtins"
-version = "0.1.0"
-dependencies = [
- "core 0.1.0",
-]
 

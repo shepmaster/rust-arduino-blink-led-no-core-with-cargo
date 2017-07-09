@@ -10,7 +10,6 @@
 #[macro_use]
 extern crate core;
 extern crate arduino;
-extern crate rustc_builtins;
 
 use core::prelude::v1::*;
 use core::ptr::{read_volatile, write_volatile};
@@ -48,23 +47,6 @@ const INTERRUPT_EVERY_1_HZ_1024_PRESCALER: u16 =
 const BAUD: u64 = 9600;
 const MYUBRR: u16 = (CPU_FREQUENCY_HZ / 16 / BAUD - 1) as u16;
 
-// const MEMORY_MAP_START: u16 = MEMORY_MAP_REGISTERS_START;
-// const MEMORY_MAP_REGISTERS_START: u16 = 0x0000; // - 0x001F
-// const MEMORY_MAP_IO_REGISTERS_START: u16 = 0x0020; // - 0x005F
-// const MEMORY_MAP_EXTENDED_IO_REGISTERS_START: u16 = 0x0060; // - 0x00FF
-// const MEMORY_MAP_SRAM_START: u16 = 0x0100;
-// const MEMORY_MAP_SRAM_END: u16 = 0x0900; // EXCLUSIVE! DEPENDS ON PART!
-    // 0x02FF/0x04FF/0x4FF/0x08FF
-
-
-
-// extern {
-//     static __data_start: u16;
-//     static __data_end: u16;
-//     static __data_load_start: u16;
-//     static __data_load_end: u16;
-// }
-
 extern {
     #[naked]
     fn __initialize_memory();
@@ -74,62 +56,12 @@ fn initialize_memory() {
     unsafe {
         __initialize_memory();
     }
-
-    // let len = __data_load_end - __data_load_start;
-    // if len == 0 { return }
-
-    // fn hi_lo(v: u16) -> (u8, u8) {
-    //     (((v >> 8) & 0xFF) as u8, ((v >> 0) & 0xFF) as u8)
-    // }
-
-    // let (len_hi, len_lo) = hi_lo(len);
-    // let (z_hi, z_lo) = hi_lo(__data_load_start);
-    // let (x_hi, x_lo) = hi_lo(__data_start);
-
-//     unsafe {
-//         asm!("
-//             sub r28, r30
-//             sbc r29, r31    ; Y now contains the length of bytes
-// entrypoint:
-//             lpm r0, Z+      ; Load from program memory, increment pointer
-//             st X+, r0       ; Store to RAM, increment pointer
-
-//             subi r28, 1     ; Decrement the count
-//             sbci r29, 0
-// check:
-//             brne entrypoint ; Exit when all bytes copied"
-//              : // output operands
-//              : // input operands
-//              "{r31r30}"(__data_load_start) // Z
-//              "{r27r26}"(__data_start)      // X
-//              "{r29r28}"(__data_load_end)   // Y
-//              : // clobbers
-//              "cc r0"
-//              : // options
-//         );
-
-        // let src = __data_start as *mut u8;
-        // let dest = __data_load_start as *mut u8;
-        // let len = __data_load_end - __data_load_start;
-
-        // let src = 00800100 as *mut u8;
-        // let dest = 00000126 as *mut u8;
-        // let len = 00000136 - 00000124;
-
-        // let dest = __data_start as *mut u8;
-        // let src = __data_load_start as *mut u8;
-        // let end = __data_load_end as *mut u8;
-
-        // 0x0118
-        //     0x0128
-
-
 }
 
 #[no_mangle]
 pub extern fn main() -> ! {
     without_interrupts(|| { // TODO: we know interrupts are off, don't we?
-        // r1 is assumed to be always zero
+        // The ABI requires that r1 starts as zero
         unsafe { asm!("eor r1, r1"); }
 
         unsafe {
