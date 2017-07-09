@@ -1,5 +1,6 @@
 COMPILED:=target/arduino/release/blink.elf
 HEX:=blink.hex
+SERIAL_PORT:=/dev/cu.usbmodem1411
 
 all: ${HEX}
 
@@ -14,4 +15,8 @@ ${HEX}: ${COMPILED}
 # Download the HEX to the board
 .PHONY: program
 program: ${HEX}
-	avrdude -p atmega328p -c arduino -P /dev/cu.usbmodem1411 -U flash:w:$<:i
+	avrdude -p atmega328p -c arduino -P ${SERIAL_PORT} -U flash:w:$<:i
+
+.PHONY: connect-terminal
+connect-terminal:
+	picocom ${SERIAL_PORT}

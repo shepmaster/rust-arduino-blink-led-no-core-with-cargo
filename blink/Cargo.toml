@@ -3,8 +3,21 @@ name = "blink"
 version = "0.1.0"
 authors = ["Jake Goulding <jake.goulding@gmail.com>"]
 
+[profile.release]
+lto = true
+
+# [dependencies]
+# rlibc = "*"
+
 [dependencies.core]
-path = "../libcore"
+path = "../rust-avr-libcore-mini"
 
 [dependencies.arduino]
 path = "../arduino"
+
+# [dependencies.compiler-rt]
+# git = "https://github.com/japaric/compiler-rt.rs"
+
+
+[dependencies.rustc_builtins]
+path = "/Users/shep/Projects/rustc-builtins"
