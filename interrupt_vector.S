@@ -1,3 +1,6 @@
+.section .ivr, "ax", @progbits
+.align 1
+
 ivr:
         jmp _ivr_reset
         jmp _ivr_irq0

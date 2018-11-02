@@ -1,12 +1,12 @@
-COMPILED:=target/arduino/release/blink.elf
+COMPILED:=target/avr-atmega328p/release/blink.elf
 HEX:=blink.hex
-SERIAL_PORT:=/dev/cu.usbmodem1411
+SERIAL_PORT:=/dev/cu.usbmodem14401
 
 all: ${HEX}
 
 .PHONY: ${COMPILED}
 ${COMPILED}:
-	cargo build --release --target=./arduino.json
+	xargo build  --target avr-atmega328p --release
 
 # Convert binary to an Intel HEX file for upload
 ${HEX}: ${COMPILED}

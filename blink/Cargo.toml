@@ -4,10 +4,9 @@ version = "0.1.0"
 authors = ["Jake Goulding <jake.goulding@gmail.com>"]
 
 [profile.release]
+debug = true
 lto = true
-
-[dependencies.core]
-path = "../rust-avr-libcore-mini"
+opt-level = "z"
 
 [dependencies.arduino]
 path = "../arduino"
