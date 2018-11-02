@@ -3,6 +3,7 @@
 #![feature(asm)]
 #![feature(naked_functions)]
 #![feature(abi_avr_interrupt)]
+#![feature(panic_handler)]
 
 #![no_core]
 #![no_main]
@@ -23,8 +24,10 @@ use arduino::prelude::*;
 #[lang = "eh_personality"]
 extern fn eh_personality() {}
 
-#[lang = "panic_fmt"]
-extern fn panic_fmt() -> ! { loop {} }
+#[panic_handler]
+fn panic(_info: &core::panic::PanicInfo) -> ! {
+    loop {}
+}
 
 #[no_mangle]
 pub unsafe extern "avr-interrupt" fn _ivr_timer1_compare_a() {
@@ -77,11 +80,11 @@ pub extern fn main() -> ! {
             write_volatile(PORTB, 0xFF);
         }
 
-        timer1::Timer::new()
-            .waveform_generation_mode(timer1::WaveformGenerationMode::ClearOnTimerMatchOutputCompare)
-            .clock_source(timer1::ClockSource::Prescale1024)
-            .output_compare_1(Some(INTERRUPT_EVERY_1_HZ_1024_PRESCALER))
-            .configure();
+        // timer1::Timer::new()
+        //     .waveform_generation_mode(timer1::WaveformGenerationMode::ClearOnTimerMatchOutputCompare)
+        //     .clock_source(timer1::ClockSource::Prescale1024)
+        //     .output_compare_1(Some(INTERRUPT_EVERY_1_HZ_1024_PRESCALER))
+        //     .configure();
 
         serial::Serial::new(MYUBRR)
             .character_size(serial::CharacterSize::EightBits)
@@ -92,42 +95,42 @@ pub extern fn main() -> ! {
     });
 
     serial::transmit(b'A');
-
-    write_newline();
-    for i in 0..4 {
-        let b = unsafe { *TO_HEX.get_unchecked(i) };
-        serial::transmit(b);
-    }
     write_newline();
 
-    write_u8_hex(0x00);
-    write_newline();
-    write_u8_hex(0x05);
-    write_newline();
-    write_u8_hex(0x50);
-    write_newline();
-    write_u8_hex(0xFF);
-    write_newline();
+    // for i in 0..4 {
+    //     let b = unsafe { *TO_HEX.get_unchecked(i) };
+    //     serial::transmit(b);
+    // }
+    // write_newline();
 
-    write_slice_hex(&[0x00, 0x05, 0x50, 0xFF]);
-    write_newline();
+    // write_u8_hex(0x00);
+    // write_newline();
+    // write_u8_hex(0x05);
+    // write_newline();
+    // write_u8_hex(0x50);
+    // write_newline();
+    // write_u8_hex(0xFF);
+    // write_newline();
 
-    write_raw("write_raw");
+    // write_slice_hex(&[0x00, 0x05, 0x50, 0xFF]);
+    // write_newline();
 
-    SuperSerial.write_str("write_str\r\n").unwrap();
+    // write_raw("write_raw");
+
+    // SuperSerial.write_str("write_str\r\n").unwrap();
 
     // Formatting code disabled in libcore
-    writeln!(SuperSerial, "writeln!").unwrap();
-    write_newline();
+    // writeln!(SuperSerial, "writeln!").unwrap();
+    // write_newline();
 
     serial::transmit(b'Z');
     write_newline();
 
     loop {
-        if let Some(b) = serial::try_receive() {
-            serial::transmit(b);
-            serial::transmit(b'<');
-        }
+        // if let Some(b) = serial::try_receive() {
+        //     serial::transmit(b);
+        //     serial::transmit(b'<');
+        // }
         // forever!
     }
 }
