@@ -8,5 +8,5 @@ debug = true
 lto = true
 opt-level = "z"
 
-[dependencies.arduino]
-path = "../arduino"
+[dependencies.ruduino]
+path = "./ruduino"

@@ -1,11 +1,11 @@
 [[package]]
-name = "arduino"
-version = "0.1.0"
-
-[[package]]
 name = "blink"
 version = "0.1.0"
 dependencies = [
- "arduino 0.1.0",
+ "ruduino 0.1.1",
 ]
+
+[[package]]
+name = "ruduino"
+version = "0.1.1"
 

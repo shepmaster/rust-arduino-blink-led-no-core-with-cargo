@@ -8,9 +8,8 @@
 #![no_core]
 #![no_main]
 
-#[macro_use]
 extern crate core;
-extern crate arduino;
+extern crate ruduino;
 
 use core::prelude::v1::*;
 use core::ptr::{read_volatile, write_volatile};
@@ -18,8 +17,8 @@ use core::ptr::{read_volatile, write_volatile};
 pub use core::{option, iter, fmt, ops};
 use core::fmt::Write;
 
-use arduino::*;
-use arduino::prelude::*;
+use ruduino::*;
+use ruduino::prelude::*;
 
 #[lang = "eh_personality"]
 extern fn eh_personality() {}
