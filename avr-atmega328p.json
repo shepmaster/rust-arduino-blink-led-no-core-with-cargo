@@ -23,9 +23,9 @@
     "gcc": [
       "-mmcu=atmega328p",
       "-nostartfiles",
-      "-T", "../linker-script",
-      "../interrupt_vector.S",
-      "../initialize_memory.S"
+      "-T", "./linker-script",
+      "./interrupt_vector.S",
+      "./initialize_memory.S"
     ]
   },
 
