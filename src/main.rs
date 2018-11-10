@@ -3,7 +3,6 @@
 #![feature(asm)]
 #![feature(naked_functions)]
 #![feature(abi_avr_interrupt)]
-#![feature(panic_handler)]
 
 #![no_core]
 #![no_main]
