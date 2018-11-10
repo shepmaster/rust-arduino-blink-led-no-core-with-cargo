@@ -1,14 +1,10 @@
 #![feature(lang_items)]
-#![feature(no_core)]
 #![feature(asm)]
 #![feature(naked_functions)]
 #![feature(abi_avr_interrupt)]
 
-#![no_core]
+#![no_std]
 #![no_main]
-
-extern crate core;
-extern crate ruduino;
 
 use core::prelude::v1::*;
 use core::ptr::{read_volatile, write_volatile};
