@@ -2,6 +2,9 @@
 #![feature(asm)]
 #![feature(naked_functions)]
 #![feature(abi_avr_interrupt)]
+#![feature(never_type)]
+#![feature(async_await)]
+#![feature(generators)]
 
 #![no_std]
 #![no_main]
@@ -88,38 +91,46 @@ pub extern fn main() -> ! {
             .configure();
     });
 
-    serial::transmit(b'A');
-    write_newline();
-
-    for i in 0..4 {
-        let b = unsafe { *TO_HEX.get_unchecked(i) };
-        serial::transmit(b);
-    }
-    write_newline();
-
-    write_u8_hex(0x00);
-    write_newline();
-    write_u8_hex(0x05);
-    write_newline();
-    write_u8_hex(0x50);
-    write_newline();
-    write_u8_hex(0xFF);
-    write_newline();
-
-    write_slice_hex(&[0x00, 0x05, 0x50, 0xFF]);
-    write_newline();
-
-    write_raw("write_raw");
-
-    SuperSerial.write_str("write_str\r\n").unwrap();
-
-    // Formatting code disabled in libcore
-    // writeln!(SuperSerial, "writeln!").unwrap();
+    // serial::transmit(b'A');
     // write_newline();
 
-    serial::transmit(b'Z');
-    write_newline();
+    // for i in 0..4 {
+    //     let b = unsafe { *TO_HEX.get_unchecked(i) };
+    //     serial::transmit(b);
+    // }
+    // write_newline();
 
+    // write_u8_hex(0x00);
+    // write_newline();
+    // write_u8_hex(0x05);
+    // write_newline();
+    // write_u8_hex(0x50);
+    // write_newline();
+    // write_u8_hex(0xFF);
+    // write_newline();
+
+    // write_slice_hex(&[0x00, 0x05, 0x50, 0xFF]);
+    // write_newline();
+
+    // write_raw("write_raw");
+
+    // SuperSerial.write_str("write_str\r\n").unwrap();
+
+    // // Formatting code disabled in libcore
+    // // writeln!(SuperSerial, "writeln!").unwrap();
+    // // write_newline();
+
+    // serial::transmit(b'Z');
+    // write_newline();
+
+    fut::do_futures();
+
+    // loop {
+    //     fn alpha(i: i32) -> i32 { i + 1 }
+    //     static FOO: fn(i32) -> i32 = alpha;
+    // }
+
+/*
     loop {
         if let Some(b) = serial::try_receive() {
             serial::transmit(b'>');
@@ -128,50 +139,231 @@ pub extern fn main() -> ! {
         }
         // forever!
     }
+*/
 }
 
-pub static TO_HEX: &'static [u8; 16] = b"0123456789ABCDEF";
+// pub static TO_HEX: &'static [u8; 16] = b"0123456789ABCDEF";
 
-#[inline(never)]
-pub fn write_slice_hex(v: &[u8]) {
-    for &b in v {
-        write_u8_hex(b);
-    }
-}
+// #[inline(never)]
+// pub fn write_slice_hex(v: &[u8]) {
+//     for &b in v {
+//         write_u8_hex(b);
+//     }
+// }
 
-#[inline(never)]
-pub fn write_u8_hex(v: u8) {
-    let top_idx = (v >> 4) & 0b1111;
-    let bot_idx = (v >> 0) & 0b1111;
+// #[inline(never)]
+// pub fn write_u8_hex(v: u8) {
+//     let top_idx = (v >> 4) & 0b1111;
+//     let bot_idx = (v >> 0) & 0b1111;
 
-    let top = unsafe { *TO_HEX.get_unchecked(top_idx as usize) };
-    let bot = unsafe { *TO_HEX.get_unchecked(bot_idx as usize) };
+//     let top = unsafe { *TO_HEX.get_unchecked(top_idx as usize) };
+//     let bot = unsafe { *TO_HEX.get_unchecked(bot_idx as usize) };
 
-    serial::transmit(top);
-    serial::transmit(bot);
-}
+//     serial::transmit(top);
+//     serial::transmit(bot);
+// }
 
-#[inline(never)]
-fn write_newline() {
-    serial::transmit(b'\r');
-    serial::transmit(b'\n');
-}
+// #[inline(never)]
+// fn write_newline() {
+//     serial::transmit(b'\r');
+//     serial::transmit(b'\n');
+// }
 
-#[inline(never)]
-fn write_raw(s: &str) {
-    for b in s.bytes() {
-        serial::transmit(b);
-    }
-    write_newline();
-}
+// #[inline(never)]
+// fn write_raw(s: &str) {
+//     for b in s.bytes() {
+//         serial::transmit(b);
+//     }
+//     write_newline();
+// }
 
-struct SuperSerial;
+// struct SuperSerial;
 
-impl fmt::Write for SuperSerial {
-    fn write_str(&mut self, s: &str) -> Result<(), fmt::Error> {
-        for b in s.bytes() {
-            serial::transmit(b);
+// impl fmt::Write for SuperSerial {
+//     fn write_str(&mut self, s: &str) -> Result<(), fmt::Error> {
+//         for b in s.bytes() {
+//             serial::transmit(b);
+//         }
+//         Ok(())
+//     }
+// }
+
+mod fut {
+    use core::{pin::Pin, future::Future, task::{Context, Poll, Waker}};
+    use ruduino::{UCSR0B, RXCIE0, UDRIE0, serial};
+    use embrio_async::embrio_async;
+//    use embrio_executor::executor::block_on;
+
+    fn set_bit_in(register: *mut u8, bit: u8) {
+        use core::ptr::{read_volatile, write_volatile};
+        unsafe {
+            let old = read_volatile(register);
+            let new = old | bit;
+            write_volatile(register, new);
         }
-        Ok(())
     }
+
+    fn unset_bit_in(register: *mut u8, bit: u8) {
+        use core::ptr::{read_volatile, write_volatile};
+        unsafe {
+            let old = read_volatile(register);
+            let new = old ^ bit;
+            write_volatile(register, new);
+        }
+    }
+
+
+    struct Serial;
+
+    impl Serial {
+        // TODO: Maybe take a slice instead?
+        fn tx(&self, byte: u8) -> SerialTx {
+            SerialTx(byte)
+        }
+
+        // TODO: Maybe take a slice instead?
+        fn rx<'a>(&self, byte: &'a mut u8) -> SerialRx<'a> {
+            SerialRx(byte)
+        }
+    }
+
+    struct SerialRx<'a>(&'a mut u8);
+
+    static mut RX_WAKER: Option<Waker> = None;
+
+    #[inline(always)]
+    fn rx_interrupt_handler() {
+        // Safety:
+        // We are on a single-threaded CPU, so static mutable shoudn't matter.
+        unsafe {
+            if let Some(waker) = RX_WAKER.take() {
+                // Notify our waker to poll the future again
+                waker.wake();
+
+                // We must either read from the buffer or disable the
+                // interrupt to prevent re-invoking the interrupt
+                // handler immediately.
+                disable_serial_rx_interrupt();
+            }
+        }
+    }
+
+    fn enable_serial_rx_interrupt() {
+        set_bit_in(UCSR0B, RXCIE0);
+    }
+
+    fn disable_serial_rx_interrupt() {
+        unset_bit_in(UCSR0B, RXCIE0);
+    }
+
+    impl<'a> Future for SerialRx<'a> {
+        type Output = ();
+
+        fn poll(self: Pin<&mut Self>, ctx: &mut Context) -> Poll<Self::Output> {
+            match serial::try_receive() {
+                Some(v) => {
+                    *Pin::get_mut(self).0 = v;
+                    Poll::Ready(())
+                },
+                None => {
+                    // Safety:
+                    // We are on a single-threaded CPU, so static mutable shoudn't matter.
+                    unsafe {
+                        RX_WAKER = Some(ctx.waker().clone());
+                    }
+                    enable_serial_rx_interrupt();
+
+                    Poll::Pending
+                }
+            }
+        }
+    }
+
+    struct SerialTx(u8);
+
+    static mut TX_WAKER: Option<Waker> = None;
+
+    #[inline(always)]
+    fn tx_interrupt_handler() {
+        // Safety:
+        // We are on a single-threaded CPU, so static mutable shoudn't matter.
+        unsafe {
+            if let Some(waker) = TX_WAKER.take() {
+                // Notify our waker to poll the future again
+                waker.wake();
+
+                // We must either read from the buffer or disable the
+                // interrupt to prevent re-invoking the interrupt
+                // handler immediately.
+                disable_serial_tx_empty_interrupt();
+            }
+        }
+    }
+
+    fn enable_serial_tx_empty_interrupt() {
+        set_bit_in(UCSR0B, UDRIE0);
+    }
+
+    fn disable_serial_tx_empty_interrupt() {
+        unset_bit_in(UCSR0B, UDRIE0);
+    }
+
+    impl Future for SerialTx {
+        type Output = ();
+
+        fn poll(self: Pin<&mut Self>, ctx: &mut Context) -> Poll<Self::Output> {
+            match serial::try_transmit(self.0) {
+                Ok(()) => {
+                    Poll::Ready(())
+                },
+                Err(()) => {
+                    // Safety:
+                    // We are on a single-threaded CPU, so static mutable shoudn't matter.
+                    unsafe {
+                        TX_WAKER = Some(ctx.waker().clone());
+                    }
+                    enable_serial_tx_empty_interrupt();
+
+                    Poll::Pending
+                }
+            }
+        }
+    }
+
+    // https://github.com/Nemo157/embrio-rs/blob/master/examples/apps/hello/src/lib.rs#L29-L83
+
+    #[embrio_async]
+    async fn example() {
+        let s = Serial;
+        let mut buf = 0;
+
+        s.rx(&mut buf).await;
+        s.tx(b'>').await;
+        s.tx(buf).await;
+        s.tx(b'<').await;
+    }
+
+    pub fn do_futures() -> ! {
+        use embrio_executor::Executor;
+
+        static mut EXECUTOR: Executor = Executor::new();
+        loop {
+            let executor = unsafe { &mut EXECUTOR };
+            executor.block_on(example());
+        }
+    }
+}
+
+#[no_mangle]
+extern "C" fn abort() -> ! { loop {} }
+
+#[no_mangle]
+extern "C" fn __sync_lock_test_and_set_1(ptr: *mut u8, desired: u8) -> u8 {
+    without_interrupts(|| {
+        unsafe {
+            let old = *ptr;
+            *ptr = desired;
+            old
+        }
+    })
 }

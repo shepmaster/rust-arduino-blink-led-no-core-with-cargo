@@ -1,12 +1,12 @@
 COMPILED:=target/avr-atmega328p/release/blink.elf
 HEX:=blink.hex
-SERIAL_PORT:=/dev/cu.usbmodem14401
+SERIAL_PORT:=/dev/cu.usbmodem14101
 
 all: ${HEX}
 
 .PHONY: ${COMPILED}
 ${COMPILED}:
-	xargo build  --target avr-atmega328p --release
+	xargo build --target ${PWD}/avr-atmega328p --release
 
 # Convert binary to an Intel HEX file for upload
 ${HEX}: ${COMPILED}

@@ -9,5 +9,11 @@ debug = true
 lto = true
 opt-level = "z"
 
+[dependencies.embrio-executor]
+git = "https://github.com/Nemo157/embrio-rs/"
+
+[dependencies.embrio-async]
+git = "https://github.com/Nemo157/embrio-rs/"
+
 [dependencies.ruduino]
 path = "./ruduino"
