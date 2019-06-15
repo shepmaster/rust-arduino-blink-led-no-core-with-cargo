@@ -1,6 +1,6 @@
-COMPILED:=target/avr-atmega328p/release/blink.elf
+COMPILED:=avr-atmega328p/release/blink.elf
 HEX:=blink.hex
-SERIAL_PORT:=/dev/cu.usbmodem14101
+SERIAL_PORT:=/dev/cu.usbmodem143201
 
 all: ${HEX}
 
