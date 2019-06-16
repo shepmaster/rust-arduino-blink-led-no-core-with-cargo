@@ -4,26 +4,40 @@
 
 ;;; Does not handle the region pointer!
 __initialize_memory:
-        ldi r31, hi8(__data_load_start)
-        ldi r30, lo8(__data_load_start)         ; Z
 
-        ldi r29, hi8(__data_load_end)
-        ldi r28, lo8(__data_load_end)           ; Y
+__initialize_memory_init_data:
+        ldi     r30, lo8(__data_load_start)
+        ldi     r31, hi8(__data_load_start) ; Z
+        ldi     r24, lo8(__data_end)
+        ldi     r25, hi8(__data_end)
+        ldi     r26, lo8(__data_start)
+        ldi     r27, hi8(__data_start)      ; X
+        rjmp    __initialize_memory_init_data_check
 
-        ldi r27, hi8(__data_start)
-        ldi r26, lo8(__data_start)              ; X
+__initialize_memory_init_data_copy:
+        lpm     r18, Z+
+        st      X+, r18
 
-        sub r28, r30
-        sbc r29, r31    ; Y now contains the length of bytes
-        rjmp check
+__initialize_memory_init_data_check:
+        cp      r26, r24
+        cpc     r27, r25
+        brne    __initialize_memory_init_data_copy
 
-entrypoint:
-        lpm r0, Z+      ; Load from program memory, increment pointer
-        st X+, r0       ; Store to RAM, increment pointer
+__initialize_memory_init_bss:
+         ldi     r24, lo8(__bss_end)
+         ldi     r25, hi8(__bss_end)
+         ldi     r26, lo8(__data_end) ; X
+         ldi     r27, hi8(__data_end)
+         ldi     r18, 0x00
+         rjmp    __initialize_memory_init_bss_check
 
-        subi r28, 1     ; Decrement the count
-        sbci r29, 0
+__initialize_memory_init_bss_copy:
+        st      X+, r18
 
-check:
-        brne entrypoint ; Exit when all bytes copied
+__initialize_memory_init_bss_check:
+        cp      r26, r24
+        cpc     r27, r25
+        brne    __initialize_memory_init_bss_copy
+
+__initialize_memory_finish:
         ret

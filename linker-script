@@ -6,8 +6,9 @@
 
 /* TODO: Verify memory addresses and lengths */
 MEMORY {
-  text   (rx)   : ORIGIN = 0x000000, LENGTH = 64K
-  data   (rw!x) : ORIGIN = 0x800100, LENGTH = 0xFFA0
+  text      (rx)   : ORIGIN = 0x000000, LENGTH = 32K
+  registers (rw!x) : ORIGIN = 0x800000, LENGTH = 256
+  data      (rw!x) : ORIGIN = 0x800100, LENGTH = 2K
 }
 
 SECTIONS {
@@ -34,8 +35,10 @@ SECTIONS {
 
   /* Data not initialized to a value */
   /* Even possible in Rust? */
+  /* Yes: zero-initialized */
   .bss : AT(ADDR(.data) + SIZEOF(.data)) {
     __bss_start = .;
+    /* Can we avoid actually copying this in? */
     * (.bss*);
     __bss_end = .;
   } >data
