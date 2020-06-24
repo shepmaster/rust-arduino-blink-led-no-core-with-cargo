@@ -12,17 +12,16 @@ MEMORY {
 }
 
 SECTIONS {
-  /* The interrupt vector routines *must* start at address 0x0000  */
-  .ivr : {
+  .text : {
     /*
+     * The interrupt vector routines *must* start at address 0x0000
+     *
      * Preserve every symbol in the Interrupt Vector Routines table to
      * prevent them from being garbage collected.
      */
     KEEP(* (.ivr));
-  } >text
 
-  /* The rest of our code */
-  .text : {
+    /* The rest of our code */
     * (.text* .progmem.data*);
   } >text
 
