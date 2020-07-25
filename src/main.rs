@@ -8,7 +8,7 @@
 #![no_main]
 
 use core::{prelude::v1::*, ptr};
-use ruduino::{prelude::*, *};
+use ruduino::{prelude::*, legacy::serial, cores::atmega328, Register, Pin};
 
 #[allow(unused_macros)]
 macro_rules! println {
@@ -44,8 +44,8 @@ fn panic(_info: &core::panic::PanicInfo) -> ! {
 
 #[no_mangle]
 pub unsafe extern "avr-interrupt" fn _ivr_timer1_compare_a() {
-    let prev_value = ptr::read_volatile(PORTB);
-    ptr::write_volatile(PORTB, prev_value ^ PINB5);
+    let prev_value = ptr::read_volatile(atmega328::PORTB::ADDRESS);
+    ptr::write_volatile(atmega328::PORTB::ADDRESS, prev_value ^ atmega328::port::B5::MASK);
 }
 
 #[no_mangle]
@@ -142,27 +142,30 @@ mod initialize {
 
 #[no_mangle]
 pub extern "C" fn main() -> ! {
+    use ruduino::modules::{timer::timer16, Timer16};
+
     // TODO: we know interrupts are off, don't we?
     without_interrupts(|| {
         unsafe {
             // The ABI requires that r1 starts as zero
             llvm_asm!("eor r1, r1");
-            ptr::write_volatile(SP, CPU_INITIAL_STACK_POINTER);
+            ptr::write_volatile(atmega328::SP::ADDRESS, CPU_INITIAL_STACK_POINTER);
             initialize::memory();
         }
 
         unsafe {
             // Configure all Port B pins as outputs
-            ptr::write_volatile(DDRB, 0xFF);
+            ptr::write_volatile(atmega328::DDRB::ADDRESS, 0xFF);
             // Turn on all Port B pins
             // ptr::write_volatile(PORTB, 0xFF);
         }
 
-        timer1::Timer::new()
+        // TODO: Why is this called timer16 when the interrupt calls it timer1 ?
+        atmega328::Timer16::setup()
             .waveform_generation_mode(
-                timer1::WaveformGenerationMode::ClearOnTimerMatchOutputCompare,
+                timer16::WaveformGenerationMode::ClearOnTimerMatchOutputCompare,
             )
-            .clock_source(timer1::ClockSource::Prescale1024)
+            .clock_source(timer16::ClockSource::Prescale1024)
             .output_compare_1(Some(INTERRUPT_EVERY_1_HZ_1024_PRESCALER))
             .configure();
 
@@ -239,7 +242,7 @@ fn bracketed_echo() -> ! {
 mod exercise {
     use crate::write;
     use core::{fmt::Write, ptr};
-    use ruduino::serial;
+    use ruduino::legacy::serial;
 
     pub fn serial() {
         serial::transmit(b'A');
@@ -395,7 +398,7 @@ mod exercise {
 #[allow(unused)]
 mod write {
     use core::fmt::{self, Write};
-    use ruduino::serial;
+    use ruduino::legacy::serial;
 
     pub static TO_HEX: &[u8; 16] = b"0123456789ABCDEF";
     pub const SERIAL: SuperSerial = SuperSerial(());
@@ -466,23 +469,23 @@ mod fut {
         ptr,
         task::{Context, Poll, Waker},
     };
-//    use embrio_async::embrio_async;
-    use ruduino::{serial, RXCIE0, UCSR0B, UDRIE0};
-    use crate::write;
+    use ruduino::{legacy::serial, cores::atmega328, Register, RegisterBits};
 
-    fn set_bit_in(register: *mut u8, bit: u8) {
+    // ruduino doesn't appear to use volatile yet... ?
+    fn set_bit<R: Register<T = u8>>(bit: RegisterBits<R>) {
         unsafe {
-            let old = ptr::read_volatile(register);
-            let new = old | bit;
-            ptr::write_volatile(register, new);
+            let old = ptr::read_volatile(R::ADDRESS);
+            let new = old | u8::from(bit);
+            ptr::write_volatile(R::ADDRESS, new);
         }
     }
 
-    fn unset_bit_in(register: *mut u8, bit: u8) {
+    // ruduino doesn't appear to use volatile yet... ?
+    fn unset_bit<R: Register<T = u8>>(bit: RegisterBits<R>) {
         unsafe {
-            let old = ptr::read_volatile(register);
-            let new = old ^ bit;
-            ptr::write_volatile(register, new);
+            let old = ptr::read_volatile(R::ADDRESS);
+            let new = old ^ u8::from(bit);
+            ptr::write_volatile(R::ADDRESS, new);
         }
     }
 
@@ -537,11 +540,11 @@ mod fut {
     }
 
     fn enable_serial_rx_interrupt() {
-        set_bit_in(UCSR0B, RXCIE0);
+        set_bit(atmega328::UCSR0B::RXCIE0);
     }
 
     fn disable_serial_rx_interrupt() {
-        unset_bit_in(UCSR0B, RXCIE0);
+        unset_bit(atmega328::UCSR0B::RXCIE0);
     }
 
     impl<'a> Future for SerialRx<'a> {
@@ -590,11 +593,11 @@ mod fut {
     }
 
     fn enable_serial_tx_empty_interrupt() {
-        set_bit_in(UCSR0B, UDRIE0);
+        set_bit(atmega328::UCSR0B::UDRIE0);
     }
 
     fn disable_serial_tx_empty_interrupt() {
-        unset_bit_in(UCSR0B, UDRIE0);
+        unset_bit(atmega328::UCSR0B::UDRIE0);
     }
 
     impl Future for SerialTx {
