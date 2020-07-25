@@ -1,33 +1,37 @@
 {
-  "cpu": "atmega328p",
-  "llvm-target": "avr-unknown-unknown",
-  "data-layout": "e-P1-p:16:8-i8:8-i16:8-i32:8-i64:8-f32:8-f64:8-n8-a:8",
-
   "arch": "avr",
-  "os": "unknown",
-  "vendor": "unknown",
-
+  "data-layout": "e-P1-p:16:8-i8:8-i16:8-i32:8-i64:8-f32:8-f64:8-n8-a:8",
+  "eh-frame-header": false,
+  "env": "",
   "executables": true,
-
-  "target-c-int-width": "16",
-  "target-endian": "little",
-  "target-env": "gnu",
-  "target-pointer-width": "16",
-  "target-vendor": "unknown",
-
-  "linker": "avr-gcc",
+  "is-builtin": true,
   "linker-flavor": "gcc",
   "linker-is-gnu": true,
+  "llvm-target": "avr-unknown-unknown",
+  "os": "unknown",
+  "pre-link-args": {
+    "gcc": [
+      "-Wl,--as-needed"
+    ]
+  },
+  "target-c-int-width": "16",
+  "target-endian": "little",
+  "target-pointer-width": "16",
+  "vendor": "unknown",
+
+  "-- COMMENT --": "The following were added",
+
+  "cpu": "atmega328p",
+  "linker": "avr-gcc",
   "exe-suffix": ".elf",
   "pre-link-args": {
     "gcc": [
       "-mmcu=atmega328p",
       "-nostartfiles",
-      "-T", "./linker-script",
+      "-T",
+      "./linker-script",
       "./interrupt_vector.S",
       "./initialize_memory.S"
     ]
-  },
-
-  "no-compiler-rt": true
+  }
 }

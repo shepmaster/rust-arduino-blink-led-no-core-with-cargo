@@ -1,12 +1,14 @@
-COMPILED:=target/avr-atmega328p-new/release/blink.elf
+COMPILED:=target/avr-atmega328p/release/blink.elf
 HEX:=blink.hex
-SERIAL_PORT:=/dev/cu.usbmodem14301
+SERIAL_PORT:=/dev/cu.usbmodem143201
+
+RUSTFLAGS:=-Zverify-llvm-ir
 
 all: ${HEX}
 
 .PHONY: ${COMPILED}
 ${COMPILED}:
-	cargo +local build -Z build-std=core --target avr-atmega328p-new.json --release
+	RUSTFLAGS=${RUSTFLAGS} cargo build -Z build-std=core --target avr-atmega328p.json --release
 
 # Convert binary to an Intel HEX file for upload
 ${HEX}: ${COMPILED}
