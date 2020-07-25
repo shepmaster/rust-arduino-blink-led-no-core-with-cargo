@@ -48,15 +48,15 @@ pub unsafe extern "avr-interrupt" fn _ivr_timer1_compare_a() {
     ptr::write_volatile(PORTB, prev_value ^ PINB5);
 }
 
-// #[no_mangle]
-// pub unsafe extern "avr-interrupt" fn _ivr_usart_rx_complete() {
-//     fut::rx_interrupt_handler();
-// }
+#[no_mangle]
+pub unsafe extern "avr-interrupt" fn _ivr_usart_rx_complete() {
+    fut::rx_interrupt_handler();
+}
 
-// #[no_mangle]
-// pub unsafe extern "avr-interrupt" fn _ivr_usart_udr_empty() {
-//     fut::tx_empty_interrupt_handler();
-// }
+#[no_mangle]
+pub unsafe extern "avr-interrupt" fn _ivr_usart_udr_empty() {
+    fut::tx_empty_interrupt_handler();
+}
 
 const CPU_FREQUENCY_HZ: u64 = 16_000_000;
 const CPU_REGISTER_BYTES: u16 = 256;
@@ -189,11 +189,13 @@ pub extern "C" fn main() -> ! {
     // exercise::reference();
     // exercise::i32();
     // exercise::generator();
+    // exercise::function_pointers();
+    // exercise::function_pointers_in_struct();
 
-    // fut::do_futures();
+    fut::do_futures();
 
     // spin_loop();
-    bracketed_echo();
+    // bracketed_echo();
 }
 
 #[inline(never)]
@@ -299,7 +301,7 @@ mod exercise {
     pub fn generator() -> ! {
         use core::ops::Generator;
 
-        let mut gen = static move || {
+        let gen = static move || {
             let mut on = false;
             let on = &mut on;
             loop {
@@ -312,11 +314,79 @@ mod exercise {
                 yield;
             }
         };
-        let mut gen = unsafe { core::pin::Pin::new_unchecked(&mut gen) };
+
+        futures::pin_mut!(gen);
+
         loop {
             match gen.as_mut().resume(()) {
                 core::ops::GeneratorState::Yielded(()) => {}
                 core::ops::GeneratorState::Complete(_) => unreachable!(),
+            }
+        }
+    }
+
+    // Prevent inlining
+    macro_rules! defeat_optimizer {
+        (let $name:ident $(: $typ:ty)? = $val:expr;) => {
+            let mut $name $(: $typ)? = $val;
+            let $name = unsafe {
+                ptr::write_volatile(&mut $name, $val);
+                ptr::read_volatile(&mut $name)
+            };
+        }
+    }
+
+    #[inline(never)]
+    pub fn function_pointers() -> ! {
+        fn called(a: u8, b: u8) -> u8 {
+            a + b
+        }
+
+        defeat_optimizer!{
+            let the_function: fn(u8, u8) -> u8 = called;
+        }
+
+        loop {
+            let res = the_function(1, 2);
+            if res == 3 {
+                write::strln("OK");
+            } else {
+                write::strln("BAD");
+            }
+        }
+    }
+
+    #[inline(never)]
+    pub fn function_pointers_in_struct() -> ! {
+        fn add(a: u8, b: u8) -> u8 {
+            a + b
+        }
+
+        // struct VTable {
+        //     call: fn(u8, u8) -> u8,
+        // }
+
+        // static VT_ADD: VTable = VTable {
+        //     call: add,
+        // };
+
+        static ADD: fn(u8, u8) -> u8 = add;
+
+        // defeat_optimizer! {
+        //     let vt_add = &VT_ADD;
+        // }
+
+        defeat_optimizer! {
+            let addi = ADD;
+        }
+
+        loop {
+            let res = addi(1, 2);
+
+            if res == 3 {
+                write::strln("OK");
+            } else {
+                write::strln("BAD");
             }
         }
     }
@@ -389,226 +459,227 @@ mod write {
     }
 }
 
-// mod fut {
-//     use core::{
-//         future::Future,
-//         pin::Pin,
-//         ptr,
-//         task::{Context, Poll, Waker},
-//     };
-//     use embrio_async::embrio_async;
-//     use ruduino::{serial, RXCIE0, UCSR0B, UDRIE0};
+mod fut {
+    use core::{
+        future::Future,
+        pin::Pin,
+        ptr,
+        task::{Context, Poll, Waker},
+    };
+//    use embrio_async::embrio_async;
+    use ruduino::{serial, RXCIE0, UCSR0B, UDRIE0};
+    use crate::write;
 
-//     fn set_bit_in(register: *mut u8, bit: u8) {
-//         unsafe {
-//             let old = ptr::read_volatile(register);
-//             let new = old | bit;
-//             ptr::write_volatile(register, new);
-//         }
-//     }
+    fn set_bit_in(register: *mut u8, bit: u8) {
+        unsafe {
+            let old = ptr::read_volatile(register);
+            let new = old | bit;
+            ptr::write_volatile(register, new);
+        }
+    }
 
-//     fn unset_bit_in(register: *mut u8, bit: u8) {
-//         unsafe {
-//             let old = ptr::read_volatile(register);
-//             let new = old ^ bit;
-//             ptr::write_volatile(register, new);
-//         }
-//     }
+    fn unset_bit_in(register: *mut u8, bit: u8) {
+        unsafe {
+            let old = ptr::read_volatile(register);
+            let new = old ^ bit;
+            ptr::write_volatile(register, new);
+        }
+    }
 
-//     // Nemo157:
-//     //
-//     // I’m pretty sure that implementation is unsound for spurious
-//     // wakeups
-//     //
-//     // You could poll the future once, set the waker and enable the
-//     // interrupt, then poll the future again and have the interrupt
-//     // trigger during setting the waker again
-//     //
-//     // If the interrupt occurs mid-write to TX_WAKER then you will be
-//     // creating an &mut Option<Waker> for .take() during that
-//     // concurrent modification
+    // Nemo157:
+    //
+    // I’m pretty sure that implementation is unsound for spurious
+    // wakeups
+    //
+    // You could poll the future once, set the waker and enable the
+    // interrupt, then poll the future again and have the interrupt
+    // trigger during setting the waker again
+    //
+    // If the interrupt occurs mid-write to TX_WAKER then you will be
+    // creating an &mut Option<Waker> for .take() during that
+    // concurrent modification
 
-//     #[allow(unused)]
-//     struct Serial;
+    #[allow(unused)]
+    struct Serial;
 
-//     #[allow(unused)]
-//     impl Serial {
-//         // TODO: Maybe take a slice instead?
-//         fn tx(&self, byte: u8) -> SerialTx {
-//             SerialTx(byte)
-//         }
+    #[allow(unused)]
+    impl Serial {
+        // TODO: Maybe take a slice instead?
+        fn tx(&self, byte: u8) -> SerialTx {
+            SerialTx(byte)
+        }
 
-//         // TODO: Maybe take a slice instead?
-//         fn rx<'a>(&self, byte: &'a mut u8) -> SerialRx<'a> {
-//             SerialRx(byte)
-//         }
-//     }
+        // TODO: Maybe take a slice instead?
+        fn rx<'a>(&self, byte: &'a mut u8) -> SerialRx<'a> {
+            SerialRx(byte)
+        }
+    }
 
-//     struct SerialRx<'a>(&'a mut u8);
+    struct SerialRx<'a>(&'a mut u8);
 
-//     static mut RX_WAKER: Option<Waker> = None;
+    static mut RX_WAKER: Option<Waker> = None;
 
-//     #[inline(always)]
-//     pub fn rx_interrupt_handler() {
-//         // Safety:
-//         // We are on a single-threaded CPU, so static mutable shoudn't matter.
-//         unsafe {
-//             if let Some(waker) = RX_WAKER.take() {
-//                 // Notify our waker to poll the future again
-//                 waker.wake();
+    #[inline(always)]
+    pub fn rx_interrupt_handler() {
+        // Safety:
+        // We are on a single-threaded CPU, so static mutable shoudn't matter.
+        unsafe {
+            if let Some(waker) = RX_WAKER.take() {
+                // Notify our waker to poll the future again
+                waker.wake();
 
-//                 // We must either read from the buffer or disable the
-//                 // interrupt to prevent re-invoking the interrupt
-//                 // handler immediately.
-//                 disable_serial_rx_interrupt();
-//             }
-//         }
-//     }
+                // We must either read from the buffer or disable the
+                // interrupt to prevent re-invoking the interrupt
+                // handler immediately.
+                disable_serial_rx_interrupt();
+            }
+        }
+    }
 
-//     fn enable_serial_rx_interrupt() {
-//         set_bit_in(UCSR0B, RXCIE0);
-//     }
+    fn enable_serial_rx_interrupt() {
+        set_bit_in(UCSR0B, RXCIE0);
+    }
 
-//     fn disable_serial_rx_interrupt() {
-//         unset_bit_in(UCSR0B, RXCIE0);
-//     }
+    fn disable_serial_rx_interrupt() {
+        unset_bit_in(UCSR0B, RXCIE0);
+    }
 
-//     impl<'a> Future for SerialRx<'a> {
-//         type Output = ();
+    impl<'a> Future for SerialRx<'a> {
+        type Output = ();
 
-//         fn poll(self: Pin<&mut Self>, ctx: &mut Context) -> Poll<Self::Output> {
-//             match serial::try_receive() {
-//                 Some(v) => {
-//                     *Pin::get_mut(self).0 = v;
-//                     Poll::Ready(())
-//                 }
-//                 None => {
-//                     // Safety:
-//                     // We are on a single-threaded CPU, so static mutable shoudn't matter.
-//                     unsafe {
-//                         RX_WAKER = Some(ctx.waker().clone());
-//                     }
-//                     enable_serial_rx_interrupt();
+        fn poll(self: Pin<&mut Self>, ctx: &mut Context) -> Poll<Self::Output> {
+            match serial::try_receive() {
+                Some(v) => {
+                    *Pin::get_mut(self).0 = v;
+                    Poll::Ready(())
+                }
+                None => {
+                    // Safety:
+                    // We are on a single-threaded CPU, so static mutable shoudn't matter.
+                    unsafe {
+                        RX_WAKER = Some(ctx.waker().clone());
+                    }
+                    enable_serial_rx_interrupt();
 
-//                     Poll::Pending
-//                 }
-//             }
-//         }
-//     }
-//     mod hack {
-//         pub struct RawWaker {
-//             pub data: *const (),
-//             pub vtable: &'static mut RawWakerVTable,
-//         }
+                    Poll::Pending
+                }
+            }
+        }
+    }
 
-//         pub struct RawWakerVTable {
-//             pub clone: unsafe fn(*const ()) -> RawWaker,
-//             pub wake: unsafe fn(*const ()),
-//             pub wake_by_ref: unsafe fn(*const ()),
-//             pub drop: unsafe fn(*const ()),
-//         }
+    struct SerialTx(u8);
 
-//         #[repr(transparent)]
-//         pub struct Waker {
-//             pub waker: RawWaker,
-//         }
-//     }
+    static mut TX_WAKER: Option<Waker> = None;
 
-//     struct SerialTx(u8);
+    #[inline(always)]
+    pub fn tx_empty_interrupt_handler() {
+        // Safety:
+        // We are on a single-threaded CPU, so static mutable shoudn't matter.
 
-//     static mut TX_WAKER: Option<Waker> = None;
+        unsafe {
+            if let Some(waker) = TX_WAKER.take() {
+                // Notify our waker to poll the future again
+                waker.wake();
 
-//     #[inline(always)]
-//     pub fn tx_empty_interrupt_handler() {
-//         // Safety:
-//         // We are on a single-threaded CPU, so static mutable shoudn't matter.
+                // We must either write to the buffer or disable the
+                // interrupt to prevent re-invoking the interrupt
+                // handler immediately.
+                disable_serial_tx_empty_interrupt();
+            }
+        }
+    }
 
-//         unsafe {
-//             if let Some(waker) = TX_WAKER.take() {
-//                 // Notify our waker to poll the future again
-//                 use ruduino::{io::PORT_D, Bit::*};
-//                 PORT_D.data().toggle_bit(Bit2);
+    fn enable_serial_tx_empty_interrupt() {
+        set_bit_in(UCSR0B, UDRIE0);
+    }
 
-//                 //let hw: &mut hack::Waker = &mut *(&mut waker as *mut Waker as *mut hack::Waker);
+    fn disable_serial_tx_empty_interrupt() {
+        unset_bit_in(UCSR0B, UDRIE0);
+    }
 
-//                 // woooooeeeeee
-//                 //use core::mem;
-//                 //hw.waker.vtable.wake = mem::transmute(hw.waker.data);
+    impl Future for SerialTx {
+        type Output = ();
 
-//                 // f901 (swapped?)
-//                 // let w = hw.waker.vtable.wake;
-//                 // crate::write::slice_hex(&(w as usize).to_be_bytes());
+        fn poll(self: Pin<&mut Self>, ctx: &mut Context) -> Poll<Self::Output> {
+            match serial::try_transmit(self.0) {
+                Ok(()) => Poll::Ready(()),
+                Err(()) => {
+                    // Safety:
+                    // We are on a single-threaded CPU, so static mutable shoudn't matter.
+                    unsafe {
+                        TX_WAKER = Some(ctx.waker().clone());
+                    }
+                    enable_serial_tx_empty_interrupt();
 
-//                 // // 01f9 Executor address (right)
-//                 // let d = hw.waker.data;
-//                 // crate::write::slice_hex(&(d as usize).to_be_bytes());
+                    Poll::Pending
+                }
+            }
+        }
+    }
 
-//                 // crate::busy_sleep_100ms();
+    async fn bracketed_echo() -> ! {
+        loop {
+            let mut buf = 0;
+            Serial.rx(&mut buf).await;
 
-//                 waker.wake();
-//                 // We must either write to the buffer or disable the
-//                 // interrupt to prevent re-invoking the interrupt
-//                 // handler immediately.
-//                 disable_serial_tx_empty_interrupt();
-//             }
-//         }
-//     }
+            Serial.tx(b'>').await;
+            Serial.tx(buf).await;
+            Serial.tx(b'<').await;
+        }
+    }
 
-//     fn enable_serial_tx_empty_interrupt() {
-//         set_bit_in(UCSR0B, UDRIE0);
-//     }
+    #[allow(unused)]
+    #[inline(never)]
+    pub fn do_futures() -> ! {
+        executor::block_on(bracketed_echo())
+    }
 
-//     fn disable_serial_tx_empty_interrupt() {
-//         unset_bit_in(UCSR0B, UDRIE0);
-//     }
+    mod executor {
+        use core::{
+            future::Future,
+            ptr,
+            task::{Context, Poll, RawWaker, RawWakerVTable, Waker},
+        };
 
-//     impl Future for SerialTx {
-//         type Output = ();
+        pub fn block_on<F>(f: F) -> F::Output
+        where
+            F: Future,
+        {
+            let waker = my_waker();
+            let mut context = Context::from_waker(&waker);
 
-//         fn poll(self: Pin<&mut Self>, ctx: &mut Context) -> Poll<Self::Output> {
-//             use ruduino::{io::PORT_D, Bit::*};
+            futures::pin_mut!(f);
 
-//             match serial::try_transmit(self.0) {
-//                 Ok(()) => Poll::Ready(()),
-//                 Err(()) => {
-//                     // Safety:
-//                     // We are on a single-threaded CPU, so static mutable shoudn't matter.
-//                     unsafe {
-//                         TX_WAKER = Some(ctx.waker().clone());
-//                     }
-//                     enable_serial_tx_empty_interrupt();
+            loop {
+                match f.as_mut().poll(&mut context) {
+                    Poll::Ready(v) => return v,
+                    Poll::Pending => {
+                        // TODO: be more efficient?
+                    }
+                }
+            }
+        }
 
-//                     Poll::Pending
-//                 }
-//             }
-//         }
-//     }
+        type WakerData = *const ();
 
-//     #[embrio_async]
-//     async fn bracketed_echo() -> ! {
-//         loop {
-//             serial::transmit(b'A');
+        unsafe fn clone(_: WakerData) -> RawWaker {
+            my_raw_waker()
+        }
+        unsafe fn wake(_: WakerData) {}
+        unsafe fn wake_by_ref(_: WakerData) {}
+        unsafe fn drop(_: WakerData) {}
 
-//             // let mut buf = 0;
-//             // Serial.rx(&mut buf).await;
+        static MY_VTABLE: RawWakerVTable = RawWakerVTable::new(clone, wake, wake_by_ref, drop);
 
-//             Serial.tx(b'>').await;
-//             // Serial.tx(buf).await;
-//             Serial.tx(b'<').await;
+        fn my_raw_waker() -> RawWaker {
+            RawWaker::new(ptr::null(), &MY_VTABLE)
+        }
 
-//             serial::transmit(b'B');
-//         }
-//     }
-
-//     #[allow(unused)]
-//     pub fn do_futures() -> ! {
-//         use embrio_executor::Executor;
-
-//         static mut EXECUTOR: Executor = Executor::new();
-//         let executor = unsafe { &mut EXECUTOR };
-//         executor.block_on(bracketed_echo())
-//     }
-// }
+        fn my_waker() -> Waker {
+            unsafe { Waker::from_raw(my_raw_waker()) }
+        }
+    }
+}
 
 #[no_mangle]
 extern "C" fn abort() -> ! {
@@ -617,11 +688,21 @@ extern "C" fn abort() -> ! {
     }
 }
 
-// #[no_mangle]
-// extern "C" fn __sync_lock_test_and_set_1(ptr: *mut u8, desired: u8) -> u8 {
-//     without_interrupts(|| unsafe {
-//         let old = *ptr;
-//         *ptr = desired;
-//         old
-//     })
-// }
+#[no_mangle]
+extern "C" fn memcpy(dst: *mut u8, src: *const u8, n: usize) -> *mut u8 {
+    unsafe {
+        for i in 0..n {
+            *dst.add(i) = *src.add(i);
+        }
+    }
+    dst
+}
+
+#[no_mangle]
+extern "C" fn __sync_lock_test_and_set_1(ptr: *mut u8, desired: u8) -> u8 {
+    without_interrupts(|| unsafe {
+        let old = *ptr;
+        *ptr = desired;
+        old
+    })
+}
