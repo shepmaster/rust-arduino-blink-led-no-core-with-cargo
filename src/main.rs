@@ -82,22 +82,22 @@ mod initialize {
         #[naked]
         fn __initialize_memory();
 
-        #[no_mangle]
-        static mut __data_start: u8;
-        #[no_mangle]
-        static mut __data_end: u8;
-        #[no_mangle]
-        static mut __data_load_start: u8;
+        #[link_name = "__data_start"]
+        static mut DATA_START: u8;
+        #[link_name = "__data_end"]
+        static mut DATA_END: u8;
+        #[link_name = "__data_load_start"]
+        static mut DATA_LOAD_START: u8;
 
-        #[no_mangle]
-        static mut __bss_start: u8;
-        #[no_mangle]
-        static mut __bss_end: u8;
+        #[link_name = "__bss_start"]
+        static mut BSS_START: u8;
+        #[link_name = "__bss_end"]
+        static mut BSS_END: u8;
     }
 
     unsafe fn zero_out_bss() {
-        let mut bss: *mut u8 = &mut __bss_start;
-        let bss_end: *mut u8 = &mut __bss_end;
+        let mut bss: *mut u8 = &mut BSS_START;
+        let bss_end: *mut u8 = &mut BSS_END;
 
         while bss != bss_end {
             ptr::write_volatile(bss, 0);
@@ -106,9 +106,9 @@ mod initialize {
     }
 
     unsafe fn load_data() {
-        let mut data: *mut u8 = &mut __data_start;
-        let data_end: *mut u8 = &mut __data_end;
-        let mut data_load: *mut u8 = &mut __data_load_start;
+        let mut data: *mut u8 = &mut DATA_START;
+        let data_end: *mut u8 = &mut DATA_END;
+        let mut data_load: *mut u8 = &mut DATA_LOAD_START;
 
         while data != data_end {
             let d;
@@ -133,8 +133,8 @@ mod initialize {
     #[allow(unused)]
     pub fn info() -> (usize, usize) {
         unsafe {
-            let data_len = &__data_end as *const u8 as usize - &__data_start as *const u8 as usize;
-            let bss_len = &__bss_end as *const u8 as usize - &__bss_start as *const u8 as usize;
+            let data_len = &DATA_END as *const u8 as usize - &DATA_START as *const u8 as usize;
+            let bss_len = &BSS_END as *const u8 as usize - &BSS_START as *const u8 as usize;
             (data_len, bss_len)
         }
     }
