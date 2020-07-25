@@ -22,3 +22,17 @@ program: ${HEX}
 .PHONY: connect-terminal
 connect-terminal:
 	picocom ${SERIAL_PORT}
+
+
+.PHONY: simulate-avr
+simulate-avr: ${COMPILED}
+	simavr \
+	  -m atmega328p \
+	  -f 16000000 \
+	  -g \
+	  -v -v -v -v -v -v -v \
+	  $<
+
+.PHONY: simulate-gdb
+simulate-gdb: ${COMPILED}
+	avr-gdb -x simulate.gdbinit -tui $<
