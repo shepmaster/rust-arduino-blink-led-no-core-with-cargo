@@ -195,10 +195,10 @@ pub extern "C" fn main() -> ! {
     // exercise::function_pointers();
     // exercise::function_pointers_in_struct();
 
-    fut::do_futures();
+    //fut::do_futures();
 
     // spin_loop();
-    // bracketed_echo();
+    bracketed_echo();
 }
 
 #[inline(never)]
