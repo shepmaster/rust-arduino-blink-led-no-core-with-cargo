@@ -8,7 +8,7 @@ all: ${HEX}
 
 .PHONY: ${ELF}
 ${ELF}:
-	RUSTFLAGS=${RUSTFLAGS} cargo build -Z build-std=core --target avr-atmega328p.json --release
+	RUSTFLAGS=${RUSTFLAGS} cargo build -Z build-std=core --release
 
 # Download the ELF to the board
 .PHONY: program
