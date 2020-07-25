@@ -4,7 +4,7 @@ SERIAL_PORT:=/dev/cu.usbmodem143201
 
 RUSTFLAGS:=-Zverify-llvm-ir
 
-all: ${HEX}
+all: ${ELF}
 
 .PHONY: ${ELF}
 ${ELF}:
